@@ -1,42 +1,13 @@
 ---
 layout: post
-title: "Guardian of the Groceries: Navigating through Time and Space of my Spring Boot Project"
+title: "Navigating through Time and Space of my Spring Boot Project"
 ---
-Hello! My name is Katharina Lechner and I've recently completed my 10-month programming journey at [everyone codes](https://everyonecodes.io/). Having acquired proficiency in Java and Spring Boot, I was ready for a new challenge: a 6-week project where I could apply my newfound knowledge and craft something of my own.
-Like everything in the universe, our food is also subject to the passage of time. That's why I decided to create an app that allows you to track perishable goods along with their respective expiration dates...and I named it.. 
-# Guardian of the Groceries
+Hi, my name is Katharina Lechner and in order to fulfill a 10-month java programming course at everyone codes I had 6 weeks to create a small spring boot application of my choice. 
+In this application the user is able to manage  and track food items along with their expiration date, that are stored in different storage locations. the item, as well as the storage location can be Created, Read, Updated and Deleted by the user.
+to make the app more user-friendly I wanted to show the time until the item is expired in a relative way, such as 'in 21 days' or '21 days ago'.
+## My Problem
+At some point, while trying to implement the relative representation of time my item entity looked as follows:
 
-## The Guardian's Requirements
-To shed light on the Guardian's vision, the app's requirements unfold as follows:
-
-* The Guardian ensures that users possess the power to add, remove, and modify distinct storage locations such as "refrigerator" or "freezer."
-* Empowered by the Guardian's guidance, users gain the ability to manage items effortlessly—adding, removing, or updating them, with the caveat that each item finds its dwelling within a solitary storage location.
-* Within the sacred confines of each storage location, the Guardian grants users a glimpse into an organized list of items. The ones destined for consumption or use take precedence, gracefully ascending to the top of the list.
-* Ever watchful of the temporal tapestry, the Guardian orchestrates a display of the time remaining until the expiration date of each item, skillfully presenting it in a relatable format— be it "in 21 days" or "21 days ago."
-
-## The Guardian's dilemma 
-
-In the intricate journey of crafting this project, there came a defining moment when the Guardian, the vigilant overseer, orchestrated the creation of two vital entities: StorageLocation and Item.
-
-### The Storage Location
-```
-@Entity
-
-public class StorageLocation {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
-    @Column(nullable = false)
-    private String locationName;
-
-    @JsonBackReference
-    @OneToMany(mappedBy = "storageLocation")
-    private List<Item> items;
-}
-```
-### The Item
 ```
 @Entity
 
@@ -91,9 +62,84 @@ public class Item {
 }
 ```
 
-At this juncture, the Guardian unveils the ethereal forms of StorageLocation and Item entities, each Spring Boot layer contributing to their existence, awaited the user's interaction, promising a harmonious dance of data and functionality orchestrated by the vigilant Guardian.
 
-But...there was a problem...
+As you can see storing dynamic properties in a database just for displaying on an HTML is not the most efficient approach, because it could impact the performance, especially if the properties are frequently accessed. With the getPeriodInReadableFormat function I also limited myself to an output in only one language.
 
-...a disturbance lingered within the serene dance. Each time the user cast a gaze upon the storage locations, a cascade of redundant computations unfurled—an incessant recalculation of expiration periods for every item.
-The threads of the Spring Boot layers, while robust, struggled under the weight of this computational burden.
+## My Solution
+
+After extensive research on time and dates in Java, I opted for a solution involving a Data Transfer Object (DTO) named ´ItemDTO´ and the PrettyTime formatting library.
+
+I first incorporated PrettyTime into my project by adding the dependency to the Maven pom.xml:
+```
+<dependency>
+   <groupId>org.ocpsoft.prettytime</groupId>
+   <artifactId>prettytime</artifactId>
+   <version>5.0.7.Final</version>
+</dependency>
+``` 
+Next, I created the ItemDTO class:
+```
+public class ItemDTO {
+    private Long id;
+    private String name;
+    private LocalDate expirationDate;
+    private LocalDate wastedDate;
+    private StorageLocation storageLocation;
+    private String timeDiff;
+    }
+```
+For computing the time difference, I introduced the setTimeDiff method:
+```
+    public void setTimeDiff() {
+
+        PrettyTime prettyTime = new PrettyTime(Locale.forLanguageTag("en"));
+        prettyTime.removeUnit(Hour.class);
+        prettyTime.removeUnit(Minute.class);
+        prettyTime.removeUnit(Second.class);
+        prettyTime.removeUnit(Millisecond.class);
+        (expirationDate);
+        timeDiff = prettyTime.format(prettyTime.calculatePreciseDuration);
+    }
+```
+With prettyTime you can choose the language and remove different time Units- as for my project I only wanted years, month and days I disabled all the units from milliseconds to hours.
+
+So I had the format for the time-difference I wanted, but the place for the setTimeDiff function - which was inside the ItemDTO class - was not quiet right. 
+
+To create the ItemDTO I already had a ItemDTOMapper class, so I also implemented the setTimeDiff function there:
+
+```
+public ItemDTO apply(Item item) {
+        ItemDTO itemDTO = new ItemDTO(
+                item.getId(),
+                item.getName(),
+                item.getExpirationDate(),
+                item.getWastedDate(),
+                item.getStorageLocation());
+
+        PrettyTime prettyTime = new PrettyTime(Locale.forLanguageTag("en"));
+        prettyTime.removeUnit(Hour.class);
+        prettyTime.removeUnit(Minute.class);
+        prettyTime.removeUnit(Second.class);
+        prettyTime.removeUnit(Millisecond.class);
+        var expirationDate = item.getExpirationDate();
+        if (expirationDate == null) {
+            itemDTO.setTimeDiff("");
+        } else {
+            var prettyTimeDiff = prettyTime.format(prettyTime.calculatePreciseDuration(expirationDate));
+            itemDTO.setTimeDiff(prettyTimeDiff);
+        }
+        return itemDTO;
+    }
+
+```
+    
+Finally, I integrated the time difference calculation into the ItemService class:
+```
+public List<ItemDTO> findOrderedList(Long id) {
+return repository.findByStorageLocationIdAndWastedDateIsNullOrderByExpirationDateAsc(id)
+.stream()
+.map(itemDTOMapper)
+.collect(Collectors.toList());
+}
+```
+This streamlined process ensures the creation of ItemDTO instances with simultaneous setting of the time difference.
