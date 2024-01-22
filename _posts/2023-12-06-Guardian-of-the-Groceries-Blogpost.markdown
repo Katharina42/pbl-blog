@@ -65,6 +65,7 @@ public class Item {
 
 As you can see storing dynamic properties in a database just for displaying on an HTML is not the most efficient approach, because it could impact the performance, especially if the properties are frequently accessed. With the getPeriodInReadableFormat function I also limited myself to an output in only one language.
 
+
 ## My Solution
 
 After extensive research on time and dates in Java, I opted for a solution involving a Data Transfer Object (DTO) named ´ItemDTO´ and the PrettyTime formatting library.
