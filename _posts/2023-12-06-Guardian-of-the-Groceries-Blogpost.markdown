@@ -3,8 +3,8 @@ layout: post
 title: "Navigating through Time and Space of my Spring Boot Project"
 ---
 Hi, my name is Katharina Lechner and in order to fulfill a 10-month java programming course at everyone codes I had 6 weeks to create a small spring boot application of my choice. 
-In this application the user is able to manage  and track food items along with their expiration date, that are stored in different storage locations. the item, as well as the storage location can be Created, Read, Updated and Deleted by the user.
-to make the app more user-friendly I wanted to show the time until the item is expired in a relative way, such as 'in 21 days' or '21 days ago'.
+In this application the user is able to manage  and track food items along with their expiration date, that are stored in different storage locations. The item, as well as the storage location can be Created, Read, Updated and Deleted by the user.
+To make the app more user-friendly I wanted to show the time until the item is expired in a relative way, such as 'in 21 days' or '21 days ago'.
 ## My Problem
 At some point, while trying to implement the relative representation of time my item entity looked as follows:
 
